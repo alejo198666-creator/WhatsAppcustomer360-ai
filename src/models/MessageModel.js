@@ -4,9 +4,8 @@
  * -----------------------------------------------------------
  * Modelo unificado de mensajes del sistema.
  *
- * Todos los mensajes del usuario y del bot deben utilizar
- * esta estructura para que la interfaz pueda renderizarlos
- * según su tipo.
+ * Todos los mensajes del usuario y del bot utilizan esta
+ * estructura común.
  * ===========================================================
  */
 
@@ -37,15 +36,7 @@ export function createMessage({
 }
 
 /**
- * Crea específicamente un mensaje de texto.
- *
- * Esta función evita repetir constantemente:
- *
- * {
- *   sender,
- *   type: "text",
- *   payload: { text }
- * }
+ * Crea un mensaje de texto.
  *
  * @param {"user"|"bot"|"system"} sender
  * @param {string} text
@@ -59,6 +50,41 @@ export function createTextMessage(sender, text) {
         type: "text",
         payload: {
             text
+        }
+    });
+
+}
+
+/**
+ * Crea un mensaje de catálogo.
+ *
+ * @param {Object} options
+ * @param {Array} options.products
+ * @param {string} options.customerName
+ * @param {string} options.notice
+ * @param {number} options.cartCount
+ * @param {number} options.cartTotal
+ *
+ * @returns {Object}
+ */
+export function createCatalogMessage({
+    products = [],
+    customerName = "",
+    notice = "",
+    cartCount = 0,
+    cartTotal = 0
+}) {
+
+    return createMessage({
+        sender: "bot",
+        type: "catalog",
+        payload: {
+            title: "🛒 Catálogo de productos",
+            customerName,
+            notice,
+            products,
+            cartCount,
+            cartTotal
         }
     });
 

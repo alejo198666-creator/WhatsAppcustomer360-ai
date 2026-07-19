@@ -1,31 +1,23 @@
 import TextRenderer from "./TextRenderer";
+import CatalogRenderer from "./CatalogRenderer";
 
 /**
  * ===========================================================
  * MessageRenderer
  * -----------------------------------------------------------
- * Componente encargado de seleccionar cómo debe mostrarse
- * cada mensaje según su propiedad "type".
+ * Selecciona el componente visual correspondiente según el
+ * tipo de mensaje recibido.
  *
- * Tipos previstos:
+ * Tipos implementados:
  *
  * - text
  * - catalog
- * - buttons
- * - cart
- * - order
- * - image
- * - map
- * - pdf
- *
- * Actualmente solo está implementado el tipo "text".
- * Los demás se incorporarán progresivamente.
  * ===========================================================
  */
 
 export default function MessageRenderer({ message }) {
 
-    // Protección ante mensajes inválidos.
+    // Protección ante mensajes inexistentes.
     if (!message) {
 
         return null;
@@ -40,17 +32,26 @@ export default function MessageRenderer({ message }) {
                 <TextRenderer message={message} />
             );
 
+        case "catalog":
+
+            return (
+                <CatalogRenderer message={message} />
+            );
+
         default:
 
             /*
-             * Si aparece un tipo de mensaje que todavía no tiene
-             * renderizador, se intenta mostrar como texto.
-             *
-             * Esto evita que toda la interfaz falle mientras
-             * agregamos nuevos tipos de mensajes.
+             * Un tipo desconocido no debe romper el historial.
              */
             return (
-                <TextRenderer message={message} />
+                <TextRenderer
+                    message={{
+                        ...message,
+                        payload: {
+                            text: "No se pudo mostrar este tipo de mensaje."
+                        }
+                    }}
+                />
             );
 
     }

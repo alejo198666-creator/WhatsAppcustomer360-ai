@@ -5,21 +5,14 @@
  * Mantiene el estado actual de la conversación del chatbot.
  *
  * En una futura versión este estado será administrado por
- * una API (FastAPI) y persistido en SQL Server.
- *
- * Mientras tanto, funciona como una sesión en memoria.
+ * FastAPI y persistido en SQL Server.
  * ==========================================================
  */
 
 export const conversation = {
 
     //---------------------------------------------------------
-    // Flujo activo
-    //---------------------------------------------------------
-    // null
-    // cliente
-    // venta
-    // pedido
+    // Flujo activo: cliente, venta, pedido o null
     //---------------------------------------------------------
     flow: null,
 
@@ -29,28 +22,21 @@ export const conversation = {
     step: null,
 
     //---------------------------------------------------------
-    // Cliente que se está registrando
+    // Cliente en proceso de registro
     //---------------------------------------------------------
     cliente: {},
 
     //---------------------------------------------------------
     // Venta en construcción
     //---------------------------------------------------------
-    venta:{
-
-    cliente:null,
-
-    carrito:[],
-
-    productoSeleccionado:null,
-
-    subtotal:0,
-
-    total:0,
-
-    pedidoId:null
-
-},
+    venta: {
+        cliente: null,
+        carrito: [],
+        productoSeleccionado: null,
+        subtotal: 0,
+        total: 0,
+        pedidoId: null
+    },
 
     //---------------------------------------------------------
     // Pedido consultado
@@ -59,26 +45,22 @@ export const conversation = {
 
 };
 
-
 /**
  * Reinicia completamente la conversación.
  */
-export function resetConversation(){
+export function resetConversation() {
 
     conversation.flow = null;
-
     conversation.step = null;
-
     conversation.cliente = {};
 
     conversation.venta = {
-
-        cliente:null,
-
-        productos:[],
-
-        total:0
-
+        cliente: null,
+        carrito: [],
+        productoSeleccionado: null,
+        subtotal: 0,
+        total: 0,
+        pedidoId: null
     };
 
     conversation.pedido = null;
