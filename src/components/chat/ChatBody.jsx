@@ -1,15 +1,44 @@
 import { Box } from "@mui/material";
-import Message from "./Message";
 
-import { useContext, useEffect, useRef } from "react";
-import { ChatContext } from "../../contexts/ChatContext";
+import {
+    useContext,
+    useEffect,
+    useRef
+} from "react";
+
+import {
+    ChatContext
+} from "../../contexts/ChatContext";
+
+import MessageRenderer from "./renderers/MessageRenderer";
+
+/**
+ * ===========================================================
+ * ChatBody
+ * -----------------------------------------------------------
+ * Contenedor principal del historial de conversación.
+ *
+ * Responsabilidades:
+ *
+ * - Obtener los mensajes desde ChatContext.
+ * - Recorrer el historial.
+ * - Delegar el renderizado a MessageRenderer.
+ * - Desplazar automáticamente el chat hacia el último mensaje.
+ * ===========================================================
+ */
 
 export default function ChatBody() {
 
-    const { messages } = useContext(ChatContext);
+    const {
+        messages
+    } = useContext(ChatContext);
 
     const bottomRef = useRef(null);
 
+    /**
+     * Cada vez que cambia el arreglo de mensajes,
+     * desplazamos el contenido hacia el último mensaje.
+     */
     useEffect(() => {
 
         bottomRef.current?.scrollIntoView({
@@ -31,15 +60,15 @@ export default function ChatBody() {
 
             {messages.map((message) => (
 
-                <Message
+                <MessageRenderer
                     key={message.id}
-                    text={message.payload.text}
-					bot={message.sender === "bot"}
+                    message={message}
                 />
 
             ))}
 
-            <div ref={bottomRef}></div>
+            {/* Punto de referencia para el desplazamiento automático */}
+            <div ref={bottomRef} />
 
         </Box>
 

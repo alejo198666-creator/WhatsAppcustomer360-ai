@@ -24,41 +24,33 @@ import {
 export default function ChatInput() {
 
     const {
-
         addMessage
-
     } = useContext(ChatContext);
 
-    const [
-
-        text,
-
-        setText
-
-    ] = useState("");
+    const [text, setText] = useState("");
 
     function sendMessage() {
 
-        if (text.trim() === "") return;
+        const messageText = text.trim();
+
+        // Evita enviar mensajes vacíos.
+        if (messageText === "") return;
 
         //--------------------------------------------------
         // Mensaje del usuario
         //--------------------------------------------------
 
         const userMessage = createMessage({
-
             sender: "user",
-
+            type: "text",
             payload: {
-
-                text
-
+                text: messageText
             }
-
         });
 
         addMessage(userMessage);
 
+        // Limpia el campo de entrada.
         setText("");
 
         //--------------------------------------------------
@@ -67,18 +59,14 @@ export default function ChatInput() {
 
         setTimeout(() => {
 
-            const response = chatbot(text);
+            const response = chatbot(messageText);
 
             const botMessage = createMessage({
-
                 sender: "bot",
-
+                type: "text",
                 payload: {
-
                     text: response
-
                 }
-
             });
 
             addMessage(botMessage);
@@ -98,39 +86,30 @@ export default function ChatInput() {
         >
 
             <TextField
-
                 fullWidth
-
                 size="small"
-
                 value={text}
-
                 placeholder="Escribe un mensaje..."
+                onChange={(event) => setText(event.target.value)}
+                onKeyDown={(event) => {
 
-                onChange={(e) => setText(e.target.value)}
+                    if (event.key === "Enter") {
 
-                onKeyDown={(e) => {
-
-                    if (e.key === "Enter") {
+                        event.preventDefault();
 
                         sendMessage();
 
                     }
 
                 }}
-
             />
 
             <Button
-
                 variant="contained"
-
                 onClick={sendMessage}
-
+                disabled={text.trim() === ""}
             >
-
                 Enviar
-
             </Button>
 
         </Box>
