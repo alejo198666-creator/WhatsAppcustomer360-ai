@@ -1,130 +1,128 @@
+/**
+ * ===========================================================
+ * chatbot.js
+ * -----------------------------------------------------------
+ * Orquestador principal del motor conversacional.
+ *
+ * Responsabilidades:
+ *
+ * - Detectar si existe un flujo activo.
+ * - Delegar la entrada al flujo correspondiente.
+ * - Detectar comandos nuevos.
+ * - Consultar las intenciones generales.
+ * - Devolver siempre un MessageModel.
+ * ===========================================================
+ */
+
 import intents from "../data/intents";
-import { conversation } from "./conversationState";
-import { clientes } from "../data/fakeDB";
-import { iniciarVenta,  procesarVenta} from "./flows/ventaFlow";
+
+import {
+    conversation
+} from "./conversationState";
+
+import {
+    iniciarRegistroCliente,
+    procesarRegistroCliente
+} from "./flows/clienteFlow";
+
+import {
+    iniciarVenta,
+    procesarVenta
+} from "./flows/ventaFlow";
+
+import {
+    createTextMessage
+} from "../models/MessageModel";
+
+/**
+ * Procesa un mensaje escrito por el usuario.
+ *
+ * @param {string} message
+ * @returns {Object}
+ */
 export function chatbot(message) {
 
     const text = message.trim();
+    const lower = text.toLowerCase();
 
-    //---------------------------------------------------
-    // SI YA ESTAMOS EN EL FLUJO DE REGISTRO
-    //---------------------------------------------------
+    //--------------------------------------------------
+    // Flujo activo: registro de cliente
+    //--------------------------------------------------
 
     if (conversation.flow === "cliente") {
 
-        switch (conversation.step) {
-
-            case "nombre":
-
-                conversation.cliente.nombre = text;
-
-                conversation.step = "telefono";
-
-                return "📱 ¿Cuál es el número de WhatsApp del cliente?";
-
-            case "telefono":
-
-                if (!/^[0-9]{10}$/.test(text)) {
-
-                    return "El número debe tener 10 dígitos.";
-
-                }
-
-                conversation.cliente.telefono = text;
-
-                conversation.step = "correo";
-
-                return "📧 ¿Cuál es el correo electrónico?";
-
-            case "correo":
-
-                if (!text.includes("@")) {
-
-                    return "Ingresa un correo válido.";
-
-                }
-
-                conversation.cliente.correo = text;
-
-                conversation.step = "direccion";
-
-                return "🏠 ¿Cuál es la dirección del cliente?";
-
-            case "direccion":
-
-                conversation.cliente.direccion = text;
-
-                clientes.push(conversation.cliente);
-
-                conversation.flow = null;
-                conversation.step = null;
-                conversation.cliente = {};
-
-                return `✅ Cliente registrado correctamente.
-
-Actualmente existen ${clientes.length} cliente(s) registrados.
-
-¿Qué deseas hacer ahora?`;
-
-        }
+        return procesarRegistroCliente(text);
 
     }
 
-    //---------------------------------------------------
-    // INICIAR REGISTRO DE CLIENTE
-    //---------------------------------------------------
+    //--------------------------------------------------
+    // Flujo activo: registro de venta
+    //--------------------------------------------------
 
-    if (text.toLowerCase().includes("cliente")) {
+    if (conversation.flow === "venta") {
 
-        conversation.flow = "cliente";
-
-        conversation.step = "nombre";
-
-        conversation.cliente = {};
-
-        return `Perfecto 👍
-
-Vamos a registrar un nuevo cliente.
-
-👤 ¿Cuál es el nombre completo?`;
+        return procesarVenta(text);
 
     }
 
-    //---------------------------------------------------
-    // RESPUESTAS NORMALES
-    //---------------------------------------------------
-	//------------------------------------------------------
-    // Flujo de ventas
-   //------------------------------------------------------
+    //--------------------------------------------------
+    // Iniciar registro de cliente
+    //--------------------------------------------------
 
-    if(conversation.flow==="venta"){
+    if (
+        lower.includes("registrar cliente") ||
+        lower.includes("crear cliente") ||
+        lower.includes("nuevo cliente")
+    ) {
 
-    return procesarVenta(message);
-
-    }
-	
-	if(text.toLowerCase().includes("venta")){
-
-    return iniciarVenta();
+        return iniciarRegistroCliente();
 
     }
 
-    const lower = text.toLowerCase();
+    //--------------------------------------------------
+    // Iniciar registro de venta
+    //--------------------------------------------------
+
+    if (
+        lower.includes("registrar venta") ||
+        lower.includes("crear venta") ||
+        lower.includes("nueva venta")
+    ) {
+
+        return iniciarVenta();
+
+    }
+
+    //--------------------------------------------------
+    // Intenciones generales
+    //--------------------------------------------------
 
     for (const intent of intents) {
 
-        for (const keyword of intent.keywords) {
+        const foundKeyword = intent.keywords.some((keyword) => {
 
-            if (lower.includes(keyword.toLowerCase())) {
+            return lower.includes(keyword.toLowerCase());
 
-                return intent.response;
+        });
 
-            }
+        if (foundKeyword) {
+
+            return createTextMessage(
+                "bot",
+                intent.response
+            );
 
         }
 
     }
 
-    return "Lo siento, no entendí la solicitud.";
+    //--------------------------------------------------
+    // Respuesta predeterminada
+    //--------------------------------------------------
+
+    return createTextMessage(
+        "bot",
+        "Lo siento, no entendí la solicitud."
+    );
 
 }

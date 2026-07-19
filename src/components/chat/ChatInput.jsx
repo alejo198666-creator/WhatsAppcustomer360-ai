@@ -18,8 +18,24 @@ import {
 } from "../../services/chatbot";
 
 import {
-    createMessage
+    createTextMessage
 } from "../../models/MessageModel";
+
+/**
+ * ===========================================================
+ * ChatInput
+ * -----------------------------------------------------------
+ * Captura los mensajes escritos por el usuario.
+ *
+ * Responsabilidades:
+ *
+ * - Validar la entrada.
+ * - Crear el mensaje del usuario.
+ * - Enviarlo al contexto.
+ * - Solicitar una respuesta al chatbot.
+ * - Agregar la respuesta estructurada al historial.
+ * ===========================================================
+ */
 
 export default function ChatInput() {
 
@@ -29,45 +45,43 @@ export default function ChatInput() {
 
     const [text, setText] = useState("");
 
+    /**
+     * Envía el mensaje escrito por el usuario.
+     */
     function sendMessage() {
 
         const messageText = text.trim();
 
-        // Evita enviar mensajes vacíos.
+        // Evita mensajes vacíos.
         if (messageText === "") return;
 
         //--------------------------------------------------
-        // Mensaje del usuario
+        // Crear mensaje del usuario
         //--------------------------------------------------
 
-        const userMessage = createMessage({
-            sender: "user",
-            type: "text",
-            payload: {
-                text: messageText
-            }
-        });
+        const userMessage = createTextMessage(
+            "user",
+            messageText
+        );
 
         addMessage(userMessage);
 
-        // Limpia el campo de entrada.
+        // Limpiar inmediatamente el campo.
         setText("");
 
         //--------------------------------------------------
-        // Respuesta del bot
+        // Procesar respuesta del chatbot
         //--------------------------------------------------
 
         setTimeout(() => {
 
-            const response = chatbot(messageText);
+            /*
+             * chatbot() ya devuelve un objeto MessageModel.
+             *
+             * No es necesario volver a llamar createMessage().
+             */
+            const botMessage = chatbot(messageText);
 
-            const botMessage = createMessage({
-                sender: "bot",
-                type: "text",
-                payload: {
-                    text: response
-                }
-            });
 
             addMessage(botMessage);
 
@@ -90,7 +104,11 @@ export default function ChatInput() {
                 size="small"
                 value={text}
                 placeholder="Escribe un mensaje..."
-                onChange={(event) => setText(event.target.value)}
+                onChange={(event) => {
+
+                    setText(event.target.value);
+
+                }}
                 onKeyDown={(event) => {
 
                     if (event.key === "Enter") {
