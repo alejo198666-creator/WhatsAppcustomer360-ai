@@ -8,8 +8,7 @@ import {
 } from "@mui/material";
 
 import {
-    useContext,
-    useState
+    useContext
 } from "react";
 
 import {
@@ -32,18 +31,20 @@ import ProductCard from "../ProductCard";
  * -----------------------------------------------------------
  * Renderiza mensajes de tipo "catalog".
  *
- * Permite seleccionar productos mediante botones sin que el
- * usuario tenga que escribir manualmente el identificador.
+ * Cuando el usuario selecciona un producto o finaliza la
+ * venta, el catálogo se actualiza y sus botones quedan
+ * deshabilitados.
+ *
+ * Esto impide ejecutar varias veces una acción desde un
+ * mensaje antiguo del historial.
  * ===========================================================
  */
-
 export default function CatalogRenderer({ message }) {
 
     const {
-        addMessage
+        addMessage,
+        updateMessage
     } = useContext(ChatContext);
-
-    const [actionExecuted, setActionExecuted] = useState(false);
 
     const {
         title,
@@ -51,9 +52,19 @@ export default function CatalogRenderer({ message }) {
         notice,
         products = [],
         cartCount = 0,
-        cartTotal = 0
+        cartTotal = 0,
+        isInteractive = true
     } = message.payload ?? {};
 
+    /**
+     * Determina si las acciones del catálogo deben estar
+     * deshabilitadas.
+     */
+    const actionsDisabled = !isInteractive;
+
+    /**
+     * Formatea el total como moneda colombiana.
+     */
     const formattedTotal = new Intl.NumberFormat("es-CO", {
         style: "currency",
         currency: "COP",
@@ -61,17 +72,41 @@ export default function CatalogRenderer({ message }) {
     }).format(cartTotal);
 
     /**
+     * Desactiva permanentemente las acciones del catálogo.
+     */
+    function disableCurrentCatalog() {
+
+        updateMessage(
+            message.id,
+            (currentMessage) => ({
+                ...currentMessage,
+                payload: {
+                    ...currentMessage.payload,
+                    isInteractive: false
+                }
+            })
+        );
+
+    }
+
+    /**
      * Procesa la selección visual de un producto.
+     *
+     * @param {Object} product
      */
     function handleSelectProduct(product) {
 
-        if (actionExecuted) return;
-
-        setActionExecuted(true);
+        if (actionsDisabled || !product) return;
 
         /*
-         * Mensaje visible que representa la acción realizada
-         * por el usuario.
+         * Primero desactivamos el catálogo actual para evitar
+         * dobles clics o selecciones repetidas.
+         */
+        disableCurrentCatalog();
+
+        /*
+         * Agregamos una representación visible de la acción
+         * realizada por el usuario.
          */
         const userMessage = createTextMessage(
             "user",
@@ -83,7 +118,8 @@ export default function CatalogRenderer({ message }) {
         setTimeout(() => {
 
             /*
-             * Mensaje interno entendido por ventaFlow.
+             * Este comando interno no se muestra directamente.
+             * Es interpretado por ventaFlow.
              */
             const botMessage = chatbot(
                 `seleccionar_producto:${product.id}`
@@ -96,13 +132,20 @@ export default function CatalogRenderer({ message }) {
     }
 
     /**
-     * Finaliza provisionalmente la venta.
+     * Procesa la finalización de la venta.
      */
     function handleFinishSale() {
 
-        if (actionExecuted || cartCount === 0) return;
+        if (
+            actionsDisabled ||
+            cartCount === 0
+        ) {
 
-        setActionExecuted(true);
+            return;
+
+        }
+
+        disableCurrentCatalog();
 
         const userMessage = createTextMessage(
             "user",
@@ -137,7 +180,14 @@ export default function CatalogRenderer({ message }) {
                     width: "100%",
                     maxWidth: 760,
                     padding: 2,
-                    borderRadius: 2
+                    borderRadius: 2,
+
+                    /*
+                     * Un catálogo antiguo se muestra ligeramente
+                     * atenuado para señalar que ya fue utilizado.
+                     */
+                    opacity: actionsDisabled ? 0.72 : 1,
+                    transition: "opacity 0.2s ease"
                 }}
             >
 
@@ -175,6 +225,17 @@ export default function CatalogRenderer({ message }) {
 
                     )}
 
+                    {actionsDisabled && (
+
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                        >
+                            Este catálogo ya fue utilizado.
+                        </Typography>
+
+                    )}
+
                     <Divider />
 
                     {products.length === 0 ? (
@@ -201,7 +262,7 @@ export default function CatalogRenderer({ message }) {
                                 <ProductCard
                                     key={product.id}
                                     product={product}
-                                    disabled={actionExecuted}
+                                    disabled={actionsDisabled}
                                     onSelect={handleSelectProduct}
                                 />
 
@@ -254,7 +315,7 @@ export default function CatalogRenderer({ message }) {
                             variant="contained"
                             color="success"
                             disabled={
-                                actionExecuted ||
+                                actionsDisabled ||
                                 cartCount === 0
                             }
                             onClick={handleFinishSale}

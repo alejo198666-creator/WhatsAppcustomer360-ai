@@ -4,8 +4,16 @@
  * -----------------------------------------------------------
  * Modelo unificado de mensajes del sistema.
  *
- * Todos los mensajes del usuario y del bot utilizan esta
- * estructura común.
+ * Todos los mensajes utilizan una estructura común:
+ *
+ * {
+ *     id,
+ *     sender,
+ *     type,
+ *     payload,
+ *     createdAt,
+ *     updatedAt
+ * }
  * ===========================================================
  */
 
@@ -30,7 +38,8 @@ export function createMessage({
         sender,
         type,
         payload,
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: null
     };
 
 }
@@ -56,7 +65,7 @@ export function createTextMessage(sender, text) {
 }
 
 /**
- * Crea un mensaje de catálogo.
+ * Crea un mensaje de catálogo visual.
  *
  * @param {Object} options
  * @param {Array} options.products
@@ -64,6 +73,7 @@ export function createTextMessage(sender, text) {
  * @param {string} options.notice
  * @param {number} options.cartCount
  * @param {number} options.cartTotal
+ * @param {boolean} options.isInteractive
  *
  * @returns {Object}
  */
@@ -72,7 +82,8 @@ export function createCatalogMessage({
     customerName = "",
     notice = "",
     cartCount = 0,
-    cartTotal = 0
+    cartTotal = 0,
+    isInteractive = true
 }) {
 
     return createMessage({
@@ -84,7 +95,13 @@ export function createCatalogMessage({
             notice,
             products,
             cartCount,
-            cartTotal
+            cartTotal,
+
+            /*
+             * Permite desactivar los botones una vez realizada
+             * una acción sobre este catálogo.
+             */
+            isInteractive
         }
     });
 
