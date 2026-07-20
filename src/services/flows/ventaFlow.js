@@ -17,25 +17,25 @@
 
 import {
     conversation
-} from "../conversationState";
+} from "../conversationState.js";
 
 import {
     buscarClientePorTelefono
-} from "../database/clienteRepository";
+} from "../database/clienteRepository.js";
 
 import {
     obtenerProductos,
     buscarProducto
-} from "../database/productoRepository";
+} from "../database/productoRepository.js";
 
 import {
     createTextMessage,
     createCatalogMessage
-} from "../../models/MessageModel";
+} from "../../models/MessageModel.js";
 
 import {
     isValidPhone
-} from "../validators/phone";
+} from "../validators/phone.js";
 
 /**
  * Construye el mensaje visual del catálogo.

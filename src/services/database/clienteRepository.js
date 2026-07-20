@@ -8,7 +8,7 @@
  * =====================================================
  */
 
-import { clientes } from "../../data/fakeDB";
+import { clientes } from "../../data/fakeDB.js";
 
 /**
  * Obtiene todos los clientes registrados.

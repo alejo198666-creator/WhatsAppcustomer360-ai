@@ -14,25 +14,25 @@
  * ===========================================================
  */
 
-import intents from "../data/intents";
+import intents from "../data/intents.js";
 
 import {
     conversation
-} from "./conversationState";
+} from "./conversationState.js";
 
 import {
     iniciarRegistroCliente,
     procesarRegistroCliente
-} from "./flows/clienteFlow";
+} from "./flows/clienteFlow.js";
 
 import {
     iniciarVenta,
     procesarVenta
-} from "./flows/ventaFlow";
+} from "./flows/ventaFlow.js";
 
 import {
     createTextMessage
-} from "../models/MessageModel";
+} from "../models/MessageModel.js";
 
 /**
  * Procesa un mensaje escrito por el usuario.

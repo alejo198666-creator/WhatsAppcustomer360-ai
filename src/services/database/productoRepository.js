@@ -6,7 +6,7 @@
  * ========================================================
  */
 
-import { productos } from "../../data/productos";
+import { productos } from "../../data/productos.js";
 
 /**
  * Devuelve todo el catálogo.

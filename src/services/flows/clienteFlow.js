@@ -14,23 +14,23 @@
  * ===========================================================
  */
 
-import { conversation } from "../conversationState";
+import { conversation } from "../conversationState.js";
 
 import {
     clientes
-} from "../../data/fakeDB";
+} from "../../data/fakeDB.js";
 
 import {
     createTextMessage
-} from "../../models/MessageModel";
+} from "../../models/MessageModel.js";
 
 import {
     isValidPhone
-} from "../validators/phone";
+} from "../validators/phone.js";
 
 import {
     isValidEmail
-} from "../validators/email";
+} from "../validators/email.js";
 
 /**
  * Inicia el registro de un nuevo cliente.
