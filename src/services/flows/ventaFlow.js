@@ -50,11 +50,9 @@ import {
     buildOrder
 } from "../orders/orderService.js";
 
-import {
-    createTextMessage,
-    createCatalogMessage
-} from "../../models/MessageModel.js";
-
+import * as MessageFactory
+  from "../../models/MessageFactory.js";
+	
 import {
     isValidPhone
 } from "../validators/phone.js";
@@ -117,13 +115,13 @@ function buildCatalogMessage(notice = "") {
         conversation.venta.carrito
     );
 
-    return createCatalogMessage({
-        products,
-        customerName:
-            conversation.venta.cliente?.nombre ?? "",
-        notice,
-        cartCount: cartUnits,
-        cartTotal: conversation.venta.total
+    return MessageFactory.catalog({
+		products,
+		customerName:
+			conversation.venta.cliente?.nombre ?? "",
+		notice,
+		cartCount: cartUnits,
+		cartTotal: conversation.venta.total
     });
 
 }
@@ -150,8 +148,7 @@ export function iniciarVenta() {
     conversation.step = "buscarCliente";
     conversation.venta = createInitialSaleState();
 
-    return createTextMessage(
-        "bot",
+    return MessageFactory.text(
         `🛒 Registro de venta
 
 Ingrese el número de WhatsApp del cliente.`
@@ -179,8 +176,7 @@ export function procesarVenta(message) {
 
             if (!isValidPhone(text)) {
 
-                return createTextMessage(
-                    "bot",
+                return MessageFactory.text(
                     "El número de WhatsApp debe contener exactamente 10 dígitos."
                 );
 
@@ -193,8 +189,7 @@ export function procesarVenta(message) {
 
                 resetSaleFlow();
 
-                return createTextMessage(
-                    "bot",
+                return MessageFactory.text(
                     `❌ El cliente no existe.
 
 Primero debes registrarlo.
@@ -235,8 +230,7 @@ Registrar cliente`
 
                 if (!product) {
 
-                    return createTextMessage(
-                        "bot",
+                    return MessageFactory.text(
                         "El producto seleccionado no existe."
                     );
 
@@ -247,8 +241,7 @@ Registrar cliente`
 
                 conversation.step = "cantidad";
 
-                return createTextMessage(
-                    "bot",
+                return MessageFactory.text(
                     `Producto seleccionado:
 
 ${product.nombre}
@@ -315,15 +308,7 @@ ${formatCurrency(product.precio)}
                     conversation.venta.pedidoId =
                         savedOrder.id;
 
-                    const productDetail =
-                        savedOrder.productos
-                            .map((item) => {
 
-                                return `${item.cantidad} x ${item.nombre}
-Subtotal: ${formatCurrency(item.subtotal)}`;
-
-                            })
-                            .join("\n\n");
 
                     /*
                      * Terminamos el flujo, pero conservamos
@@ -333,36 +318,12 @@ Subtotal: ${formatCurrency(item.subtotal)}`;
                     conversation.step = null;
                     conversation.venta =
                         createInitialSaleState();
+					/*
+					 * MessageFactory genera un mensaje de tipo "order".
+					 */
+					return MessageFactory.order(savedOrder);	
 
-                    return createTextMessage(
-                        "bot",
-                        `✅ Pedido generado correctamente
-
-Número de pedido:
-${savedOrder.id}
-
-Cliente:
-${savedOrder.cliente.nombre}
-
-Productos:
-${productDetail}
-
-Subtotal:
-${formatCurrency(savedOrder.subtotal)}
-
-IVA:
-${formatCurrency(savedOrder.iva)}
-
-Descuento:
-${formatCurrency(savedOrder.descuento)}
-
-Total:
-${formatCurrency(savedOrder.total)}
-
-Estado:
-${savedOrder.estado}`
-                    );
-
+                    
                 } catch (error) {
 
                     console.error(
@@ -370,8 +331,7 @@ ${savedOrder.estado}`
                         error
                     );
 
-                    return createTextMessage(
-                        "bot",
+                    return MessageFactory.text(
                         `No fue posible generar el pedido.
 
 Intenta finalizar la venta nuevamente.`
@@ -400,8 +360,7 @@ Intenta finalizar la venta nuevamente.`
                 quantity <= 0
             ) {
 
-                return createTextMessage(
-                    "bot",
+                return MessageFactory.text(
                     "La cantidad debe ser un número entero mayor que cero."
                 );
 
@@ -456,8 +415,7 @@ Intenta finalizar la venta nuevamente.`
                     error
                 );
 
-                return createTextMessage(
-                    "bot",
+                return MessageFactory.text(
                     `No fue posible agregar el producto al carrito.
 
 Intenta ingresar nuevamente la cantidad.`
@@ -475,8 +433,7 @@ Intenta ingresar nuevamente la cantidad.`
 
             resetSaleFlow();
 
-            return createTextMessage(
-                "bot",
+            return MessageFactory.text(
                 `Ocurrió un problema durante el registro de la venta.
 
 Escribe "Registrar venta" para comenzar nuevamente.`
