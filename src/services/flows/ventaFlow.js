@@ -4,19 +4,23 @@
  * -----------------------------------------------------------
  * Flujo conversacional para registrar ventas.
  *
- * Flujo actual:
+ * Responsabilidades:
  *
- * 1. Buscar cliente.
- * 2. Mostrar catálogo.
- * 3. Seleccionar producto.
- * 4. Solicitar cantidad.
- * 5. Agregar producto al carrito.
- * 6. Finalizar la venta.
+ * - Controlar los pasos de la conversación.
+ * - Buscar el cliente.
+ * - Mostrar el catálogo.
+ * - Recibir producto y cantidad.
+ * - Solicitar los servicios de carrito y precios.
+ * - Construir y guardar el pedido.
+ *
+ * Los cálculos y la persistencia no se realizan directamente
+ * en este archivo.
  * ===========================================================
  */
 
 import {
-    conversation
+    conversation,
+    createInitialSaleState
 } from "../conversationState.js";
 
 import {
@@ -29,6 +33,24 @@ import {
 } from "../database/productoRepository.js";
 
 import {
+    guardarPedido
+} from "../database/pedidoRepository.js";
+
+import {
+    addProduct,
+    countCartUnits,
+    isCartEmpty
+} from "../cart/cartService.js";
+
+import {
+    calculatePricing
+} from "../pricing/pricingService.js";
+
+import {
+    buildOrder
+} from "../orders/orderService.js";
+
+import {
     createTextMessage,
     createCatalogMessage
 } from "../../models/MessageModel.js";
@@ -38,27 +60,87 @@ import {
 } from "../validators/phone.js";
 
 /**
+ * Formatea un valor como pesos colombianos.
+ *
+ * @param {number} value
+ * @returns {string}
+ */
+function formatCurrency(value) {
+
+    return new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        maximumFractionDigits: 0
+    }).format(value);
+
+}
+
+/**
+ * Actualiza los valores monetarios de la venta utilizando
+ * PricingService.
+ *
+ * @returns {Object}
+ */
+function updateSalePricing() {
+
+    const pricing = calculatePricing(
+        conversation.venta.carrito
+    );
+
+    conversation.venta.subtotal =
+        pricing.subtotal;
+
+    conversation.venta.iva =
+        pricing.tax;
+
+    conversation.venta.descuento =
+        pricing.discount;
+
+    conversation.venta.total =
+        pricing.total;
+
+    return pricing;
+
+}
+
+/**
  * Construye el mensaje visual del catálogo.
  *
  * @param {string} notice
  * @returns {Object}
  */
-function construirCatalogo(notice = "") {
+function buildCatalogMessage(notice = "") {
 
-    const productos = obtenerProductos();
+    const products = obtenerProductos();
+
+    const cartUnits = countCartUnits(
+        conversation.venta.carrito
+    );
 
     return createCatalogMessage({
-        products: productos,
-        customerName: conversation.venta.cliente?.nombre ?? "",
+        products,
+        customerName:
+            conversation.venta.cliente?.nombre ?? "",
         notice,
-        cartCount: conversation.venta.carrito.length,
+        cartCount: cartUnits,
         cartTotal: conversation.venta.total
     });
 
 }
 
 /**
- * Inicia el flujo de registro de ventas.
+ * Limpia únicamente el estado del flujo de venta.
+ */
+function resetSaleFlow() {
+
+    conversation.flow = null;
+    conversation.step = null;
+    conversation.venta = createInitialSaleState();
+
+}
+
+/**
+ * Inicia el registro de una venta.
  *
  * @returns {Object}
  */
@@ -66,15 +148,7 @@ export function iniciarVenta() {
 
     conversation.flow = "venta";
     conversation.step = "buscarCliente";
-
-    conversation.venta = {
-        cliente: null,
-        carrito: [],
-        productoSeleccionado: null,
-        subtotal: 0,
-        total: 0,
-        pedidoId: null
-    };
+    conversation.venta = createInitialSaleState();
 
     return createTextMessage(
         "bot",
@@ -93,7 +167,7 @@ Ingrese el número de WhatsApp del cliente.`
  */
 export function procesarVenta(message) {
 
-    const text = message.trim();
+    const text = String(message).trim();
 
     switch (conversation.step) {
 
@@ -112,12 +186,12 @@ export function procesarVenta(message) {
 
             }
 
-            const cliente = buscarClientePorTelefono(text);
+            const customer =
+                buscarClientePorTelefono(text);
 
-            if (!cliente) {
+            if (!customer) {
 
-                conversation.flow = null;
-                conversation.step = null;
+                resetSaleFlow();
 
                 return createTextMessage(
                     "bot",
@@ -132,34 +206,34 @@ Registrar cliente`
 
             }
 
-            conversation.venta.cliente = cliente;
+            conversation.venta.cliente = customer;
             conversation.step = "seleccionarProducto";
 
-            return construirCatalogo(
-                `✅ Cliente encontrado: ${cliente.nombre}`
+            return buildCatalogMessage(
+                `✅ Cliente encontrado: ${customer.nombre}`
             );
 
         }
 
         //--------------------------------------------------
-        // Seleccionar producto desde el catálogo
+        // Seleccionar producto
         //--------------------------------------------------
 
         case "seleccionarProducto": {
 
-            /*
-             * Los botones del catálogo envían mensajes internos
-             * con este formato:
-             *
-             * seleccionar_producto:1
-             */
-            if (text.startsWith("seleccionar_producto:")) {
+            if (
+                text.startsWith(
+                    "seleccionar_producto:"
+                )
+            ) {
 
-                const productId = text.split(":")[1];
+                const productId =
+                    text.split(":")[1];
 
-                const producto = buscarProducto(productId);
+                const product =
+                    buscarProducto(productId);
 
-                if (!producto) {
+                if (!product) {
 
                     return createTextMessage(
                         "bot",
@@ -168,16 +242,19 @@ Registrar cliente`
 
                 }
 
-                conversation.venta.productoSeleccionado = producto;
+                conversation.venta.productoSeleccionado =
+                    product;
+
                 conversation.step = "cantidad";
 
                 return createTextMessage(
                     "bot",
                     `Producto seleccionado:
 
-${producto.nombre}
+${product.nombre}
 
-Precio unitario: $${producto.precio.toLocaleString("es-CO")}
+Precio unitario:
+${formatCurrency(product.precio)}
 
 ¿Cuántas unidades deseas agregar?`
                 );
@@ -185,68 +262,126 @@ Precio unitario: $${producto.precio.toLocaleString("es-CO")}
             }
 
             //--------------------------------------------------
-            // Finalizar venta desde el botón del catálogo
+            // Finalizar venta y generar pedido
             //--------------------------------------------------
 
             if (text === "finalizar_venta") {
 
-                if (conversation.venta.carrito.length === 0) {
+                if (
+                    isCartEmpty(
+                        conversation.venta.carrito
+                    )
+                ) {
 
-                    return construirCatalogo(
+                    return buildCatalogMessage(
                         "Debes agregar al menos un producto antes de finalizar."
                     );
 
                 }
 
-                const cliente = conversation.venta.cliente;
-                const carrito = [...conversation.venta.carrito];
-                const total = conversation.venta.total;
+                try {
 
-                const detalleProductos = carrito
-                    .map((item) => {
+                    /*
+                     * Calculamos nuevamente los precios antes
+                     * de generar el pedido.
+                     */
+                    const pricing =
+                        updateSalePricing();
 
-                        return `${item.cantidad} x ${item.nombre} — $${item.subtotal.toLocaleString("es-CO")}`;
+                    /*
+                     * OrderService construye el pedido, pero no
+                     * lo almacena.
+                     */
+                    const order = buildOrder(
+                        conversation.venta.cliente,
+                        conversation.venta.carrito,
+                        pricing
+                    );
 
-                    })
-                    .join("\n");
+                    /*
+                     * PedidoRepository se encarga de guardar
+                     * el pedido en fakeDB.
+                     */
+                    const savedOrder =
+                        guardarPedido(order);
 
-                /*
-                 * Finalizamos el flujo.
-                 *
-                 * En el siguiente módulo este punto creará un
-                 * pedido mediante pedidoRepository.
-                 */
-                conversation.flow = null;
-                conversation.step = null;
+                    /*
+                     * Conservamos el pedido recién creado para
+                     * futuras consultas o renderización.
+                     */
+                    conversation.pedido =
+                        savedOrder;
 
-                conversation.venta = {
-                    cliente: null,
-                    carrito: [],
-                    productoSeleccionado: null,
-                    subtotal: 0,
-                    total: 0,
-                    pedidoId: null
-                };
+                    conversation.venta.pedidoId =
+                        savedOrder.id;
 
-                return createTextMessage(
-                    "bot",
-                    `✅ Venta finalizada provisionalmente
+                    const productDetail =
+                        savedOrder.productos
+                            .map((item) => {
+
+                                return `${item.cantidad} x ${item.nombre}
+Subtotal: ${formatCurrency(item.subtotal)}`;
+
+                            })
+                            .join("\n\n");
+
+                    /*
+                     * Terminamos el flujo, pero conservamos
+                     * conversation.pedido.
+                     */
+                    conversation.flow = null;
+                    conversation.step = null;
+                    conversation.venta =
+                        createInitialSaleState();
+
+                    return createTextMessage(
+                        "bot",
+                        `✅ Pedido generado correctamente
+
+Número de pedido:
+${savedOrder.id}
 
 Cliente:
-${cliente.nombre}
+${savedOrder.cliente.nombre}
 
 Productos:
-${detalleProductos}
+${productDetail}
+
+Subtotal:
+${formatCurrency(savedOrder.subtotal)}
+
+IVA:
+${formatCurrency(savedOrder.iva)}
+
+Descuento:
+${formatCurrency(savedOrder.descuento)}
 
 Total:
-$${total.toLocaleString("es-CO")}
+${formatCurrency(savedOrder.total)}
 
-En el próximo módulo esta venta será almacenada como pedido.`
-                );
+Estado:
+${savedOrder.estado}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Error al generar el pedido:",
+                        error
+                    );
+
+                    return createTextMessage(
+                        "bot",
+                        `No fue posible generar el pedido.
+
+Intenta finalizar la venta nuevamente.`
+                    );
+
+                }
 
             }
 
-            return construirCatalogo(
+            return buildCatalogMessage(
                 "Selecciona un producto utilizando uno de los botones."
             );
 
@@ -258,11 +393,11 @@ En el próximo módulo esta venta será almacenada como pedido.`
 
         case "cantidad": {
 
-            const cantidad = Number(text);
+            const quantity = Number(text);
 
             if (
-                !Number.isInteger(cantidad) ||
-                cantidad <= 0
+                !Number.isInteger(quantity) ||
+                quantity <= 0
             ) {
 
                 return createTextMessage(
@@ -272,43 +407,63 @@ En el próximo módulo esta venta será almacenada como pedido.`
 
             }
 
-            const producto =
+            const selectedProduct =
                 conversation.venta.productoSeleccionado;
 
-            if (!producto) {
+            if (!selectedProduct) {
 
-                conversation.step = "seleccionarProducto";
+                conversation.step =
+                    "seleccionarProducto";
 
-                return construirCatalogo(
+                return buildCatalogMessage(
                     "No se encontró el producto seleccionado. Selecciónalo nuevamente."
                 );
 
             }
 
-            const subtotal = producto.precio * cantidad;
+            try {
 
-            conversation.venta.carrito.push({
-                productoId: producto.id,
-                nombre: producto.nombre,
-                precio: producto.precio,
-                cantidad,
-                subtotal
-            });
+                /*
+                 * CartService devuelve un carrito nuevo.
+                 * No modifica directamente el anterior.
+                 */
+                conversation.venta.carrito =
+                    addProduct(
+                        conversation.venta.carrito,
+                        selectedProduct,
+                        quantity
+                    );
 
-            conversation.venta.subtotal = subtotal;
+                /*
+                 * PricingService calcula todos los valores.
+                 */
+                updateSalePricing();
 
-            conversation.venta.total =
-                conversation.venta.carrito.reduce(
-                    (total, item) => total + item.subtotal,
-                    0
+                conversation.venta.productoSeleccionado =
+                    null;
+
+                conversation.step =
+                    "seleccionarProducto";
+
+                return buildCatalogMessage(
+                    `✅ ${quantity} unidad(es) de ${selectedProduct.nombre} agregada(s) al carrito.`
                 );
 
-            conversation.venta.productoSeleccionado = null;
-            conversation.step = "seleccionarProducto";
+            } catch (error) {
 
-            return construirCatalogo(
-                `✅ ${cantidad} unidad(es) de ${producto.nombre} agregada(s) al carrito.`
-            );
+                console.error(
+                    "Error al agregar producto:",
+                    error
+                );
+
+                return createTextMessage(
+                    "bot",
+                    `No fue posible agregar el producto al carrito.
+
+Intenta ingresar nuevamente la cantidad.`
+                );
+
+            }
 
         }
 
@@ -318,8 +473,7 @@ En el próximo módulo esta venta será almacenada como pedido.`
 
         default:
 
-            conversation.flow = null;
-            conversation.step = null;
+            resetSaleFlow();
 
             return createTextMessage(
                 "bot",
