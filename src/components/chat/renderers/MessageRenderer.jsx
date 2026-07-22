@@ -1,5 +1,7 @@
 import TextRenderer from "./TextRenderer";
 import CatalogRenderer from "./CatalogRenderer";
+import OrderRenderer from "./OrderRenderer";
+import OrdersListRenderer from "./OrdersListRenderer";
 
 /**
  * ===========================================================
@@ -12,12 +14,16 @@ import CatalogRenderer from "./CatalogRenderer";
  *
  * - text
  * - catalog
+ * - order
+ * - orders
  * ===========================================================
  */
 
 export default function MessageRenderer({ message }) {
 
-    // Protección ante mensajes inexistentes.
+    /*
+     * Protección ante mensajes inexistentes.
+     */
     if (!message) {
 
         return null;
@@ -38,6 +44,18 @@ export default function MessageRenderer({ message }) {
                 <CatalogRenderer message={message} />
             );
 
+        case "order":
+
+            return (
+                <OrderRenderer message={message} />
+            );
+
+        case "orders":
+
+            return (
+                <OrdersListRenderer message={message} />
+            );
+
         default:
 
             /*
@@ -47,6 +65,7 @@ export default function MessageRenderer({ message }) {
                 <TextRenderer
                     message={{
                         ...message,
+
                         payload: {
                             text: "No se pudo mostrar este tipo de mensaje."
                         }

@@ -17,10 +17,6 @@
 import { conversation } from "../conversationState.js";
 
 import {
-    clientes
-} from "../../data/fakeDB.js";
-
-import {
     createTextMessage
 } from "../../models/MessageModel.js";
 
@@ -32,6 +28,10 @@ import {
     isValidEmail
 } from "../validators/email.js";
 
+import {
+    guardarCliente,
+    getClientes
+} from "../database/clienteRepository.js";
 /**
  * Inicia el registro de un nuevo cliente.
  *
@@ -63,6 +63,8 @@ Vamos a registrar un nuevo cliente.
 export function procesarRegistroCliente(message) {
 
     const text = message.trim();
+	
+
 
     switch (conversation.step) {
 
@@ -139,11 +141,13 @@ export function procesarRegistroCliente(message) {
              * Así evitamos que futuros cambios en conversation.cliente
              * modifiquen accidentalmente el registro guardado.
              */
-            clientes.push({
-                ...conversation.cliente
-            });
+            guardarCliente({
+				...conversation.cliente
+			});
 
-            const totalClientes = clientes.length;
+			const totalClientes =
+				getClientes().length;
+
 
             /*
              * Restablecemos el flujo después de guardar.

@@ -26,8 +26,15 @@ import {
 } from "../services/pricing/pricingService.js";
 
 import {
-    buildOrder
+    buildOrder,
+    getAllowedOrderStatuses,
+    canChangeOrderStatus,
+    cambiarEstadoPedido
 } from "../services/orders/orderService.js";
+
+import {
+    ORDER_STATUS
+} from "../constants/orderStatus.js";
 
 import {
     resetOrderSequence
@@ -54,6 +61,41 @@ const oil = {
     nombre: "Aceite 1 L",
     precio: 13800
 };
+
+/**
+ * Crea y guarda un pedido básico para las pruebas
+ * relacionadas con estados.
+ *
+ * @returns {Object}
+ */
+function createStoredOrder() {
+
+    limpiarPedidos();
+    resetOrderSequence();
+
+    const customer = {
+        nombre: "Javier Segura",
+        telefono: "3001234567"
+    };
+
+    const cart = addProduct(
+        [],
+        rice,
+        2
+    );
+
+    const pricing =
+        calculatePricing(cart);
+
+    const order = buildOrder(
+        customer,
+        cart,
+        pricing
+    );
+
+    return guardarPedido(order);
+
+}
 
 test(
     "addProduct agrega un producto sin modificar el carrito original",
@@ -154,6 +196,7 @@ test(
         );
 
         assert.equal(result.length, 1);
+
         assert.equal(
             result[0].productoId,
             oil.id
@@ -287,7 +330,7 @@ test(
 
         assert.equal(
             order.estado,
-            "Pendiente"
+            ORDER_STATUS.PENDING
         );
 
         assert.equal(
@@ -347,6 +390,182 @@ test(
         assert.equal(
             obtenerPedidos().length,
             1
+        );
+
+    }
+);
+
+test(
+    "getAllowedOrderStatuses devuelve únicamente transiciones válidas",
+    () => {
+
+        assert.deepEqual(
+            getAllowedOrderStatuses(
+                ORDER_STATUS.PENDING
+            ),
+            [
+                ORDER_STATUS.CONFIRMED,
+                ORDER_STATUS.CANCELLED
+            ]
+        );
+
+        assert.deepEqual(
+            getAllowedOrderStatuses(
+                ORDER_STATUS.SHIPPED
+            ),
+            [
+                ORDER_STATUS.DELIVERED
+            ]
+        );
+
+        assert.deepEqual(
+            getAllowedOrderStatuses(
+                ORDER_STATUS.DELIVERED
+            ),
+            []
+        );
+
+        assert.deepEqual(
+            getAllowedOrderStatuses(
+                "Estado inexistente"
+            ),
+            []
+        );
+
+    }
+);
+
+test(
+    "canChangeOrderStatus identifica transiciones permitidas y rechazadas",
+    () => {
+
+        assert.equal(
+            canChangeOrderStatus(
+                ORDER_STATUS.PENDING,
+                ORDER_STATUS.CONFIRMED
+            ),
+            true
+        );
+
+        assert.equal(
+            canChangeOrderStatus(
+                ORDER_STATUS.PENDING,
+                ORDER_STATUS.DELIVERED
+            ),
+            false
+        );
+
+        assert.equal(
+            canChangeOrderStatus(
+                ORDER_STATUS.CANCELLED,
+                ORDER_STATUS.CONFIRMED
+            ),
+            false
+        );
+
+    }
+);
+
+test(
+    "cambiarEstadoPedido actualiza y persiste un estado válido",
+    () => {
+
+        const order =
+            createStoredOrder();
+
+        const updatedOrder =
+            cambiarEstadoPedido(
+                order.id,
+                ORDER_STATUS.CONFIRMED
+            );
+
+        assert.equal(
+            updatedOrder.estado,
+            ORDER_STATUS.CONFIRMED
+        );
+
+        assert.ok(
+            updatedOrder.fechaActualizacion
+        );
+
+        /*
+         * Se consulta nuevamente el repositorio para comprobar
+         * que el cambio no exista únicamente en el resultado
+         * devuelto por el servicio.
+         */
+        const storedOrder =
+            buscarPedidoPorId(order.id);
+
+        assert.ok(storedOrder);
+
+        assert.equal(
+            storedOrder.estado,
+            ORDER_STATUS.CONFIRMED
+        );
+
+        assert.ok(
+            storedOrder.fechaActualizacion
+        );
+
+    }
+);
+
+test(
+    "cambiarEstadoPedido rechaza una transición no permitida",
+    () => {
+
+        const order =
+            createStoredOrder();
+
+        assert.throws(
+            () => {
+
+                cambiarEstadoPedido(
+                    order.id,
+                    ORDER_STATUS.DELIVERED
+                );
+
+            },
+            {
+                message:
+                    'No se permite cambiar el pedido de "Pendiente" a "Entregado".'
+            }
+        );
+
+        /*
+         * El pedido debe conservar el estado original después
+         * del intento rechazado.
+         */
+        const storedOrder =
+            buscarPedidoPorId(order.id);
+
+        assert.equal(
+            storedOrder.estado,
+            ORDER_STATUS.PENDING
+        );
+
+    }
+);
+
+test(
+    "cambiarEstadoPedido rechaza un pedido inexistente",
+    () => {
+
+        limpiarPedidos();
+
+        assert.throws(
+            () => {
+
+                cambiarEstadoPedido(
+                    "PED-999999",
+                    ORDER_STATUS.CONFIRMED
+                );
+
+            },
+            {
+                message:
+                    "No se encontró el pedido PED-999999."
+            }
         );
 
     }

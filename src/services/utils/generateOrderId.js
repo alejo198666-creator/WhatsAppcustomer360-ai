@@ -2,7 +2,7 @@
  * ===========================================================
  * generateOrderId.js
  * -----------------------------------------------------------
- * Genera identificadores consecutivos para los pedidos.
+ * Genera identificadores consecutivos persistentes.
  *
  * Ejemplos:
  *
@@ -10,12 +10,18 @@
  * PED-000002
  * PED-000003
  *
+ * El consecutivo se conserva en localStorage, por lo que no
+ * vuelve a cero al recargar o cerrar el navegador.
+ *
  * En una versión con SQL Server, el consecutivo será generado
  * por la base de datos o por el backend FastAPI.
  * ===========================================================
  */
 
-let orderSequence = 0;
+import {
+    nextOrderSequence,
+    saveOrderSequence
+} from "../storage/storageService.js";
 
 /**
  * Genera el siguiente identificador de pedido.
@@ -24,12 +30,14 @@ let orderSequence = 0;
  */
 export function generateOrderId() {
 
-    orderSequence += 1;
+    const sequence =
+        nextOrderSequence();
 
-    const paddedSequence = String(orderSequence).padStart(
-        6,
-        "0"
-    );
+    const paddedSequence =
+        String(sequence).padStart(
+            6,
+            "0"
+        );
 
     return `PED-${paddedSequence}`;
 
@@ -42,6 +50,6 @@ export function generateOrderId() {
  */
 export function resetOrderSequence() {
 
-    orderSequence = 0;
+    saveOrderSequence(0);
 
 }

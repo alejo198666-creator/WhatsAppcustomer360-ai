@@ -17,22 +17,37 @@ import {
 
 /**
  * Mensaje de texto.
+ *
+ * @param {string} message
+ * @param {string} sender
+ * @returns {Object}
  */
-export function text(text, sender = "bot") {
-    return createTextMessage(sender, text);
+export function text(message, sender = "bot") {
+
+    return createTextMessage(
+        sender,
+        message
+    );
+
 }
 
 /**
  * Catálogo interactivo.
+ *
+ * @param {Object} options
+ * @returns {Object}
  */
 export function catalog(options) {
+
     return createCatalogMessage(options);
+
 }
 
 /**
- * Pedido visual.
+ * Pedido visual individual.
  *
- * (Renderer se implementará en el siguiente sprint.)
+ * @param {Object} order
+ * @returns {Object}
  */
 export function order(order) {
 
@@ -45,7 +60,66 @@ export function order(order) {
 }
 
 /**
+ * Lista visual de pedidos.
+ *
+ * @param {Object} options
+ * @param {Object} options.customer
+ * @param {Array} options.orders
+ * @param {string} options.title
+ * @returns {Object}
+ */
+export function orders({
+    customer = null,
+    orders: orderList = [],
+    title = "📦 Mis pedidos"
+} = {}) {
+
+    return createMessage({
+        sender: "bot",
+        type: "orders",
+
+        payload: {
+            title,
+
+            customer: customer
+                ? {
+                    ...customer
+                }
+                : null,
+
+            orders: Array.isArray(orderList)
+                ? orderList.map((item) => ({
+                    ...item,
+
+                    cliente: item.cliente
+                        ? {
+                            ...item.cliente
+                        }
+                        : null,
+
+                    productos: Array.isArray(item.productos)
+                        ? item.productos.map((product) => ({
+                            ...product
+                        }))
+                        : []
+                }))
+                : [],
+
+            /*
+             * Permite deshabilitar los botones después de usar
+             * un mensaje antiguo del historial.
+             */
+            isInteractive: true
+        }
+    });
+
+}
+
+/**
  * Mensaje de error.
+ *
+ * @param {string} message
+ * @returns {Object}
  */
 export function error(message) {
 
@@ -58,6 +132,9 @@ export function error(message) {
 
 /**
  * Mensaje de éxito.
+ *
+ * @param {string} message
+ * @returns {Object}
  */
 export function success(message) {
 
@@ -70,6 +147,9 @@ export function success(message) {
 
 /**
  * Información.
+ *
+ * @param {string} message
+ * @returns {Object}
  */
 export function info(message) {
 
