@@ -30,9 +30,9 @@ background:"#ECE5DD"
 
 sx={{
 
-width:420,
+width:300,
 
-height:820,
+height:600,
 
 background:"#fff",
 
