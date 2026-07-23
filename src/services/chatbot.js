@@ -45,6 +45,7 @@ import {
 import * as MessageFactory
     from "../models/MessageFactory.js";
 
+import { mostrarMenuPrincipal } from "./menuService.js";
 /**
  * Procesa un mensaje escrito o generado por la interfaz.
  *
@@ -58,6 +59,30 @@ export function chatbot(message) {
 
     const lower =
         text.toLowerCase();
+	
+	//--------------------------------------------------
+    // Mostrar menú principal
+    //--------------------------------------------------
+
+    if (
+        lower === "menu" ||
+        lower === "menú" ||
+        lower === "opciones" ||
+        lower.includes("cuáles son las opciones") ||
+        lower.includes("cuales son las opciones") ||
+        lower.includes("menu principal") ||
+        lower.includes("menú principal") ||
+        lower.includes("regresar al menu") ||
+        lower.includes("regresar al menú") ||
+        lower.includes("volver al menu") ||
+        lower.includes("volver al menú")
+    ) {
+
+        conversation.flow = null;
+
+        return mostrarMenuPrincipal();
+
+    }
 
     //--------------------------------------------------
     // Comando interno: ver detalle de un pedido
@@ -130,6 +155,7 @@ export function chatbot(message) {
     //--------------------------------------------------
 
     if (
+        lower === "1" ||
         lower.includes("registrar cliente") ||
         lower.includes("crear cliente") ||
         lower.includes("nuevo cliente")
@@ -143,7 +169,9 @@ export function chatbot(message) {
     // Iniciar registro de venta
     //--------------------------------------------------
 
-    if (
+     if (
+        lower === "2" ||
+        lower.includes("crear pedido") ||
         lower.includes("registrar venta") ||
         lower.includes("crear venta") ||
         lower.includes("nueva venta")
@@ -177,7 +205,8 @@ export function chatbot(message) {
     // Iniciar consulta de un solo pedido
     //--------------------------------------------------
 
-    if (
+     if (
+        lower === "3" ||
         lower.includes("consultar pedido") ||
         lower.includes("buscar pedido") ||
         lower.includes("ver pedido")
@@ -218,8 +247,8 @@ export function chatbot(message) {
     // Respuesta predeterminada
     //--------------------------------------------------
 
-    return MessageFactory.text(
-        "Lo siento, no entendí la solicitud."
+        return mostrarMenuPrincipal(
+        "Lo siento, no entendí la solicitud. Estas son las opciones disponibles:"
     );
 
 }
