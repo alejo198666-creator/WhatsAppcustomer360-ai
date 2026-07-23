@@ -25,6 +25,9 @@ import {
 import * as MessageFactory
     from "../../models/MessageFactory.js";
 
+import {
+    mostrarMenuPrincipal
+} from "../menuService.js";
 /**
  * Reinicia el flujo de consulta de pedido.
  *
@@ -102,13 +105,25 @@ export function consultarPedidoPorId(value) {
 
     if (!isValidOrderId(orderId)) {
 
-        return MessageFactory.text(
-            `El número del pedido no tiene un formato válido.
+        /*
+         * Cerramos el flujo para que el usuario pueda
+         * elegir nuevamente una opción del menú.
+         */
+        resetOrderFlow();
+
+        return [
+            MessageFactory.text(
+                `⚠️ El número del pedido no tiene un formato válido.
 
 Escribe un número como:
 
 PED-000003`
-        );
+            ),
+
+            mostrarMenuPrincipal(
+                "Puedes intentar nuevamente seleccionando Consultar pedido."
+            )
+        ];
 
     }
 
@@ -117,11 +132,21 @@ PED-000003`
 
     if (!order) {
 
-        return MessageFactory.text(
-            `❌ No se encontró el pedido ${orderId}.
+        /*
+         * Cerramos el flujo después de una consulta
+         * sin resultados.
+         */
+        resetOrderFlow();
+
+        return [
+            MessageFactory.text(
+                `❌ No se encontró el pedido ${orderId}.
 
 Verifica el número e intenta nuevamente.`
-        );
+            ),
+
+            mostrarMenuPrincipal()
+        ];
 
     }
 
@@ -133,7 +158,13 @@ Verifica el número e intenta nuevamente.`
      */
     resetOrderFlow(false);
 
-    return MessageFactory.order(order);
+    return [
+        MessageFactory.order(order),
+
+        mostrarMenuPrincipal(
+            "✅ Pedido encontrado. ¿Qué deseas hacer ahora?"
+        )
+    ];
 
 }
 

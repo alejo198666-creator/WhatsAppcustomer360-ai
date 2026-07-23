@@ -33,7 +33,33 @@ export default function ChatProvider({ children }) {
      *
      * @param {Object} message
      */
-    const addMessage = useCallback((message) => {
+    /**
+ * Agrega uno o varios mensajes al final del historial.
+ *
+ * @param {Object|Object[]} messageOrMessages
+ */
+const addMessage = useCallback((messageOrMessages) => {
+
+    /*
+     * Convierte siempre la respuesta en un arreglo.
+     *
+     * Si llega un solo mensaje:
+     * { id, sender, type, payload }
+     *
+     * se convierte en:
+     * [{ id, sender, type, payload }]
+     *
+     * Si ya llega un arreglo, se conserva.
+     */
+    const receivedMessages =
+        Array.isArray(messageOrMessages)
+            ? messageOrMessages
+            : [messageOrMessages];
+
+    /*
+     * Conserva únicamente los mensajes válidos.
+     */
+    const validMessages = receivedMessages.filter((message) => {
 
         if (!message?.id) {
 
@@ -42,16 +68,33 @@ export default function ChatProvider({ children }) {
                 message
             );
 
-            return;
+            return false;
 
         }
 
-        setMessages((previousMessages) => [
-            ...previousMessages,
-            message
-        ]);
+        return true;
 
-    }, []);
+    });
+
+    /*
+     * Si ninguno de los mensajes es válido,
+     * no se modifica el historial.
+     */
+    if (validMessages.length === 0) {
+
+        return;
+
+    }
+
+    /*
+     * Agrega todos los mensajes válidos al historial.
+     */
+    setMessages((previousMessages) => [
+        ...previousMessages,
+        ...validMessages
+    ]);
+
+}, []);
 
     /**
      * Actualiza un mensaje por su identificador.

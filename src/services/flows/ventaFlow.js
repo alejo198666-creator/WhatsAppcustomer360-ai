@@ -57,6 +57,9 @@ import {
     isValidPhone
 } from "../validators/phone.js";
 
+import {
+    mostrarMenuPrincipal
+} from "../menuService.js";
 /**
  * Formatea un valor como pesos colombianos.
  *
@@ -321,7 +324,13 @@ ${formatCurrency(product.precio)}
 					/*
 					 * MessageFactory genera un mensaje de tipo "order".
 					 */
-					return MessageFactory.order(savedOrder);	
+					return [
+							MessageFactory.order(savedOrder),
+
+							mostrarMenuPrincipal(
+        "✅ Pedido creado correctamente. ¿Qué deseas hacer ahora?"
+    )
+];	
 
                     
                 } catch (error) {

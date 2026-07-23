@@ -32,6 +32,9 @@ import {
     guardarCliente,
     getClientes
 } from "../database/clienteRepository.js";
+import {
+    mostrarMenuPrincipal
+} from "../menuService.js";
 /**
  * Inicia el registro de un nuevo cliente.
  *
@@ -132,38 +135,64 @@ export function procesarRegistroCliente(message) {
         // Dirección y almacenamiento
         //--------------------------------------------------
 
-        case "direccion":
+        case "direccion": {
 
-            conversation.cliente.direccion = text;
+    conversation.cliente.direccion = text;
 
-            /*
-             * Se crea una copia del objeto antes de almacenarlo.
-             * Así evitamos que futuros cambios en conversation.cliente
-             * modifiquen accidentalmente el registro guardado.
-             */
-            guardarCliente({
-				...conversation.cliente
-			});
+    try {
 
-			const totalClientes =
-				getClientes().length;
+        guardarCliente({
+            ...conversation.cliente
+        });
 
+        const totalClientes =
+            getClientes().length;
 
-            /*
-             * Restablecemos el flujo después de guardar.
-             */
-            conversation.flow = null;
-            conversation.step = null;
-            conversation.cliente = {};
+        /*
+         * Restablecemos el flujo después de guardar
+         * correctamente el cliente.
+         */
+        conversation.flow = null;
+        conversation.step = null;
+        conversation.cliente = {};
 
-            return createTextMessage(
+        return [
+            createTextMessage(
                 "bot",
                 `✅ Cliente registrado correctamente.
 
-Actualmente existen ${totalClientes} cliente(s) registrados.
+Actualmente existen ${totalClientes} cliente(s) registrados.`
+            ),
 
-¿Qué deseas hacer ahora?`
-            );
+            mostrarMenuPrincipal()
+        ];
+
+    } catch (error) {
+
+        /*
+         * El número ya está registrado.
+         *
+         * Se reinicia el flujo para evitar que el usuario
+         * quede atrapado en el paso de dirección.
+         */
+        conversation.flow = null;
+        conversation.step = null;
+        conversation.cliente = {};
+
+        return [
+            createTextMessage(
+                "bot",
+                `⚠️ ${error.message}`
+            ),
+
+            mostrarMenuPrincipal(
+                "Puedes elegir otra opción o intentar registrar un cliente con un número diferente."
+            )
+        ];
+
+    }
+
+}
 
         //--------------------------------------------------
         // Estado inesperado
