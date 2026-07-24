@@ -2,13 +2,21 @@ import * as MessageFactory
     from "../models/MessageFactory.js";
 
 /**
- * Devuelve el menú principal del chatbot.
+ * Construye el menú principal del chatbot.
+ *
+ * Este servicio se utiliza:
+ *
+ * - Al iniciar la aplicación.
+ * - Después de crear un cliente.
+ * - Después de crear un pedido.
+ * - Después de consultar un pedido.
+ * - Cuando el usuario solicita regresar al menú.
  *
  * @param {string} message
  * @returns {Object}
  */
 export function mostrarMenuPrincipal(
-    message = "¿Qué deseas hacer ahora?"
+    message = "¿Qué deseas hacer?"
 ) {
 
     return MessageFactory.text(
@@ -18,7 +26,7 @@ export function mostrarMenuPrincipal(
 2️⃣ Crear pedido
 3️⃣ Consultar pedido
 
-También puedes escribir el nombre de la opción.`
+Escribe el número o el nombre de la opción.`
     );
 
 }

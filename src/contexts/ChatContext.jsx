@@ -5,6 +5,9 @@ import {
     useState
 } from "react";
 
+import {
+    mostrarMenuPrincipal
+} from "../services/menuService.js";
 /**
  * Contexto global del historial de conversación.
  */
@@ -26,7 +29,13 @@ export const ChatContext = createContext(null);
  */
 export default function ChatProvider({ children }) {
 
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState(() => [
+
+    mostrarMenuPrincipal(
+        "👋 Bienvenido a Customer360. ¿Qué deseas hacer?"
+    )
+
+]);
 
     /**
      * Agrega un mensaje al final del historial.
@@ -193,7 +202,13 @@ const addMessage = useCallback((messageOrMessages) => {
      */
     const clearChat = useCallback(() => {
 
-        setMessages([]);
+    setMessages([
+
+        mostrarMenuPrincipal(
+            "Conversación reiniciada. ¿Qué deseas hacer?"
+        )
+
+    ]);
 
     }, []);
 
